@@ -52,14 +52,15 @@ static void init_master(void)
 {
     int taskNum;
 
+    MPI_COMM_SIZE(MPI_COMM_WORLD, &taskNum);
+    // Allocates the number of tasks in the provided communicator group. As the communicator is defined as
+    // "world", it represents all available MPI nodes. MPI_COMM_WORLD denotes all nodes in the MPI application
+
     if (taskNum > 1)
         printf("MASTER: There are [%d] slave nodes.\n", taskNum);
     else
         printf("MASTER: There is [%d] slave node.\n", taskNum);
 
-    MPI_COMM_SIZE(MPI_COMM_WORLD, &taskNum);
-    // Allocates the number of tasks in the provided communicator group. As the communicator is defined as
-    // "world", it represents all available MPI nodes. MPI_COMM_WORLD denotes all nodes in the MPI application.
 }
 
 // This will be called after identifying the calling device as a "worker".
@@ -68,5 +69,33 @@ static void init_master(void)
 // finally sends the result to the master.
 static void init_slave(int rank)
 {
-     pritnf("SLAVE: I am slave node [%d].\n", rank);
+    worker_input_t job;
+    worker_output_t result;
+    MPI_STATUS status;
+
+    printf("SLAVE: I am slave node [%d].\n", rank);
+
+    // Recieve all messages from master node.
+    while(true)
+    {
+        MPI_Recv()
+    }
+}
+
+// This is the function run to process a job on a worker node.
+static worker_output_t do_job(worker_input_t job)
+{
+
+}
+
+// This is a master function used to process the results returned by workers.
+static void process_work(worker_output_t result)
+{
+
+}
+
+// Function called by master in order to process next job in the queue.
+static worker_input_t get_next_job(void)
+{
+
 }
