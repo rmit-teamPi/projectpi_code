@@ -8,9 +8,14 @@
 #include    <mpi.h>
 #include    <stdio.h>
 #define     MASTER_NODE 0
+#define     KILLFLAG 2
+#define     JOBFLAG 1
 
 static void init_master(void);
 static void init_slave(int rank);
+static worker_output_t do_job(worker_input_t);
+static void process_work(worker_output_t);
+static worker_input_t get_next_job(void);
 
 
 int main(int argc, char *argv[])
@@ -69,16 +74,25 @@ static void init_master(void)
 // finally sends the result to the master.
 static void init_slave(int rank)
 {
-    worker_input_t job;
-    worker_output_t result;
+    worker_input_t job; // Job buffer recieved by master
+    worker_output_t result; // Result buffer after processing job
     MPI_STATUS status;
 
     printf("SLAVE: I am slave node [%d].\n", rank);
 
-    // Recieve all messages from master node.
+    // Recieve all messages from master node. This is blocking IO
     while(true)
     {
-        MPI_Recv()
+        // Recv(buffer, count, datatype, destination, tag, WORLD, status)
+        MPI_Recv(&job, 1, MPI_INT, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &status)
+
+        // Check to see if the slave has been sent a kill command
+        if (status.MPI_TAG == KILLFLAG)
+            return;
+
+        result = do_job(job);
+        // Send(buffer, count, datatype, destination, tab, WORLD)
+        MPI_Send(&result, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
     }
 }
 
