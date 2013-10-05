@@ -1,4 +1,6 @@
 /*
+    Main program daemon.
+
     1) Must include MPI header files and function prototypes.
     2) Initialize MPI environment
     3) Utilize message passing system.
@@ -16,6 +18,16 @@ static void init_slave(int rank);
 static worker_output_t do_job(worker_input_t);
 static void process_work(worker_output_t);
 static worker_input_t get_next_job(void);
+
+typedef struct
+{
+    /* data */
+} worker_input_t;
+
+typedef struct
+{
+    /* data */
+} worker_output_t;
 
 
 int main(int argc, char *argv[])
@@ -48,6 +60,7 @@ int main(int argc, char *argv[])
     return 0;
 }
 
+// MASTER SECTION
 // This function will be called after identifying the call device as a "manager".
 // The manager should iteratively request a scheduled job from the queue and determine
 // the most appropriate slave to undertake the job.
@@ -55,7 +68,10 @@ int main(int argc, char *argv[])
 // from all slaves (sending a pull request ideally).
 static void init_master(void)
 {
-    int taskNum;
+    int taskNum, rank;
+    worker_input_t job;
+    worker_output_t result;
+    MPI_STATUS status;
 
     MPI_COMM_SIZE(MPI_COMM_WORLD, &taskNum);
     // Allocates the number of tasks in the provided communicator group. As the communicator is defined as
@@ -66,8 +82,23 @@ static void init_master(void)
     else
         printf("MASTER: There is [%d] slave node.\n", taskNum);
 
+    // Seed all workers, initialize each
+    for (rank = 1, rank < taskNum; rank++)
+    {
+        job = get_next_job();
+    }
+
+    while (workCompleteNum < jobNum)
+    {
+        // Get result from workers
+        MPI_Recv(&result, 1, MPI_UNSIGNED, MPI_ANY_SOURCE, DONE, MPI_COMM_WORLD, &status);
+        // Determine which node was assigned that job
+        rank = status.MPI_SOURCE;
+        //
+    }
 }
 
+// SLAVE SECTION
 // This will be called after identifying the calling device as a "worker".
 // The worker node should operate in a polling fashion.
 // The worker waits for messages from the master and proceeds to do the work and
