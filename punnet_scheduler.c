@@ -12,6 +12,7 @@
 #define     MASTER_NODE 0
 #define     KILLFLAG 2
 #define     JOBFLAG 1
+#define     JOBDONEFLAG 3
 
 static void init_master(void);
 static void init_slave(int rank);
@@ -68,7 +69,7 @@ int main(int argc, char *argv[])
 // from all slaves (sending a pull request ideally).
 static void init_master(void)
 {
-    int taskNum, rank;
+    int taskNum, rank, jobCompletedNum = 0, jobID = -1;
     worker_input_t job;
     worker_output_t result;
     MPI_STATUS status;
@@ -82,19 +83,31 @@ static void init_master(void)
     else
         printf("MASTER: There is [%d] slave node.\n", taskNum);
 
-    // Seed all workers, initialize each
-    for (rank = 1, rank < taskNum; rank++)
+    // Seed slaves each one job. These jobs should be popped from the job queue that has been established
+    // by the user.
+    for (rank = 1; rank < taskNum; rank++)
     {
         job = get_next_job();
+        MPI_Send(&job, 1, MPI_INT, rank, JOBFLAG, MPI_COMM_WORLD);
     }
 
-    while (workCompleteNum < jobNum)
+    job = get_next_job();
+    while (job != NULL)
     {
         // Get result from workers
         MPI_Recv(&result, 1, MPI_UNSIGNED, MPI_ANY_SOURCE, DONE, MPI_COMM_WORLD, &status);
         // Determine which node was assigned that job
         rank = status.MPI_SOURCE;
-        //
+        // Send a new
+
+        job = get_next_job();
+
+    }
+
+    // Send a kill request to all workers, this signals a shutdown of cluster.
+    for (s = 1; s < taskNum; s++)
+    {
+        MPI_Send(&s, 1, MPI_INT, s, KILLFLAG, MPI_COMM_WORLD);
     }
 }
 
@@ -140,7 +153,20 @@ static void process_work(worker_output_t result)
 }
 
 // Function called by master in order to process next job in the queue.
+// This function simply removes the next job from the queue and farms it to a worker.
 static worker_input_t get_next_job(void)
+{
+
+}
+
+// This function will be called by the user to add additional jobs to the queue.
+// The queue determines what job will be issued to the workers next.
+static void queue_job(int position)
+{
+
+}
+
+static void parse_job_script(void)
 {
 
 }
