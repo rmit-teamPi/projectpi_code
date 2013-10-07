@@ -12,6 +12,9 @@
 #include    <mpi.h>
 #include    <stdio.h>
 #include    <dirent.h>
+#include    <pthread.h>
+
+
 #define     MASTER_NODE 0
 #define     JOBFLAG 1
 #define     KILLFLAG 2
@@ -39,12 +42,16 @@ typedef struct
     /* data */
 } worker_output_t;
 
+void *schedulerThread(void)
+{
 
+}
 
 int main(int argc, char *argv[])
 {
     int rank, initFlag, algorithmFlag, commFlag;
     char hostname[MAX_CHAR_HOSTNAME];
+    pthread_t schedulerThread;
 
     initFlag = MPI_Init(&argc, &argv);
     if (initFlag != MPI_SUCCESS)
@@ -64,9 +71,17 @@ int main(int argc, char *argv[])
 
     if (rank == MASTER_NODE)
     {
+        // Gather user input as to how the scheduler will operate.
         algorithmFlag = display_algorithm_menu();
         commFlag = display_comm_menu();
-        init_master();
+
+        // Create thread for farming our jobs from master.
+        pthread_create(schedulerThread, NULL, init_master_thread, "processing jobs...");
+
+        gather_user_requests();
+
+        // Join scheduling thread with main thread.
+        pthread_join(schedulerThread, NULL);
     }
     else
         init_slave(rank);
@@ -74,6 +89,11 @@ int main(int argc, char *argv[])
     // MPI environment must be destroyed.
     MPI_FINALIZE();
     return 0;
+}
+
+static void gather_user_requests(void)
+{
+    return;
 }
 
 // This menu should provide the master node an option for the end user to specificy what
@@ -137,7 +157,7 @@ static int display_comm_menu(void)
 // the most appropriate slave to undertake the job.
 // After all processing has been complete, the master should recieve outstanding results
 // from all slaves (sending a pull request ideally).
-static void init_master(void)
+static void *init_master_thread(void)
 {
     int nodeNum, rank, jobCompletedNum = 0, jobID = -1, outstandingJobNum = 0;
     worker_input_t job;
