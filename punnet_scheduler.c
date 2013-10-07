@@ -39,7 +39,7 @@ typedef struct
 
 int main(int argc, char *argv[])
 {
-    int rank, initFlag;
+    int rank, initFlag, algorithmFlag, commFlag;
     char hostname[MAX_CHAR_HOSTNAME];
 
     initFlag = MPI_Init(&argc, &argv);
@@ -60,7 +60,8 @@ int main(int argc, char *argv[])
 
     if (rank == MASTER_NODE)
     {
-        display_menu();
+        algorithmFlag = display_algorithm_menu();
+        commFlag = display_comm_menu();
         init_master();
     }
     else
@@ -73,44 +74,57 @@ int main(int argc, char *argv[])
 
 // This menu should provide the master node an option for the end user to specificy what
 // scheduling technique to use and whether to use blocking/non-blocking IO.
-static void display_menu(void)
+static int display_algorithm_menu(void)
 {
-    int algorithm, comm;
+    int algorithmOption;
     printf("Please specify the scheduling algorithm you want to employ.\n");
     printf("1) Next job waiting.\n2) Longest job first.\n3) Shortest job first.\n");
-    scanf("%d", algorithm);
+    scanf("%d", algorithmOption);
     do
     {
-        switch(algorithm)
+        switch(algorithmOption)
         {
-            case 1:
+            case ALGORITHM_FCFS:
                 printf("Next job waiting selected.\n");
                 break;
-            case 2:
+            case ALGORITHM_LONGEST_FIRST:
                 printf("Longest job first selected.\n");
                 break;
-            case 3:
+            case ALGORITHM_SHORTEST_FIRST:
                 printf("Shortest job first selected.\n");
+                break;
+            default:
+                printf("Please specify the scheduling algorithm you want to employ.\n");
+                printf("1) Next job waiting.\n2) Longest job first.\n3) Shortest job first.\n");
+                scanf("%d", algorithmOption);
                 break;
         }
     } while();
+}
 
+static int display_comm_menu(void)
+{
+    int commOption;
     printf("Please specify whether you want communication to be blocking or non-blocking.\n");
+    printf("1) Blocking IO.\n2) Non-blocking IO.\n");
+    scanf("%d", commOption);
     do
     {
-        switch(selection)
+        switch(commOption)
         {
             case 1:
-                printf("Next job waiting selected.\n");
+                printf("Blocking IO selected.\n");
                 break;
             case 2:
-                printf("Longest job first selected.\n");
+                printf("non-blocking IO selected.\n");
                 break;
-            case 3:
-                printf("Shortest job first selected.\n");
+            default:
+                printf("Please specify whether you want communication to be blocking or non-blocking.\n");
+                printf("1) Blocking IO.\n2) Non-blocking IO.\n");
+                scanf("%d", comm);
                 break;
         }
-    } while();
+    } while(comm != 1 || comm != 2);
 }
 
 // MASTER SECTION
@@ -121,7 +135,7 @@ static void display_menu(void)
 // from all slaves (sending a pull request ideally).
 static void init_master(void)
 {
-    int nodeNum, rank, jobCompletedNum = 0, jobID = -1;
+    int nodeNum, rank, jobCompletedNum = 0, jobID = -1, outstandingJobNum = 0;
     worker_input_t job;
     worker_output_t result;
     MPI_STATUS status;
@@ -131,9 +145,9 @@ static void init_master(void)
     // "world", it represents all available MPI nodes. MPI_COMM_WORLD denotes all nodes in the MPI application
 
     if (nodeNum > 1)
-        printf("MASTER: There are [%d] slave nodes.\n", taskNum);
+        printf("MASTER: There are [%d] slave nodes.\n", nodeNum);
     else
-        printf("MASTER: There is [%d] slave node.\n", taskNum);
+        printf("MASTER: There is [%d] slave node.\n", nodeNum);
 
     // Seed slaves each one job. These jobs should be popped from the job queue that has been established
     // by the user.
@@ -141,23 +155,27 @@ static void init_master(void)
     {
         job = get_next_job();
         MPI_Send(&job, 1, MPI_INT, rank, JOBFLAG, MPI_COMM_WORLD);
+        outstandingJobNum++;
     }
 
-    job = get_next_job();
-    while (job != NULL)
+    while (outstandingJobNum != 0)
     {
         // Get result from workers
         MPI_Recv(&result, 1, MPI_UNSIGNED, MPI_ANY_SOURCE, DONE, MPI_COMM_WORLD, &status);
-        // Determine which node was assigned that job
+        outstandingJobNum--;
+
+        // Determine which node completed that job.
         rank = status.MPI_SOURCE;
-        // Send a new
 
         job = get_next_job();
 
+        // Assign a new job to now vacant node.
+        MPI_Send(&job, 1, MPI_INT, rank, JOBFLAG, MPI_COMM_WORLD);
+        outstandingJobNum++;
     }
 
     // Send a kill request to all workers, this signals a shutdown of cluster.
-    for (s = 1; s < taskNum; s++)
+    for (rank = 1; rank < nodeNum; rank++)
     {
         MPI_Send(&s, 1, MPI_INT, s, KILLFLAG, MPI_COMM_WORLD);
     }
