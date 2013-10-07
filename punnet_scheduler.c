@@ -27,7 +27,7 @@ static void init_slave(int rank);
 static worker_output_t do_job(worker_input_t);
 static void process_work(worker_output_t);
 static worker_input_t get_next_job(void);
-static char **JobList;
+static char *jobFiles[20];
 
 typedef struct
 {
@@ -251,8 +251,13 @@ static boolean is_queue_empty(void)
 
 }
 
+// This function reads the contents of the job directory, checks if a files is of the correct
+// format then adds it to the job queue on the master node.
+// Basically this function initializes the job default, unsorted job queue.
+// Functionally, the queue must be able to be dynamically allocated filenames.
 static void parse_job_directory(void)
 {
+    int i = 0, fileCount = 0;
     DIR *dir;
     struct dirent *d;
     dir = opendir(".");
@@ -260,8 +265,11 @@ static void parse_job_directory(void)
     {
         while ((d = readdir(dir)) != NULL)
         {
-
+            if (d->)
+            strcpy(jobFiles[i], d->d_name);
+            i++;
         }
+        closedir(dir);
     }
 
 }
