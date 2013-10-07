@@ -7,12 +7,18 @@
     4) Terminate MPI environment.
 */
 
+// These constants should ideally be defined in their own header file along with
+// function prototypes
 #include    <mpi.h>
 #include    <stdio.h>
 #define     MASTER_NODE 0
-#define     KILLFLAG 2
 #define     JOBFLAG 1
+#define     KILLFLAG 2
 #define     JOBDONEFLAG 3
+#define     ALGORITHM_LONGEST_FIRST 4
+#define     ALGORITHM_SHORTEST_FIRST 5
+#define     ALGORITHM_FCFS 6
+#define     ALGORITHM_ROUND_ROBIN 7
 
 static void init_master(void);
 static void init_slave(int rank);
@@ -53,12 +59,58 @@ int main(int argc, char *argv[])
     // Gets hostname of calling node and assigns it to variable.
 
     if (rank == MASTER_NODE)
+    {
+        display_menu();
         init_master();
+    }
     else
         init_slave(rank);
 
+    // MPI environment must be destroyed.
     MPI_FINALIZE();
     return 0;
+}
+
+// This menu should provide the master node an option for the end user to specificy what
+// scheduling technique to use and whether to use blocking/non-blocking IO.
+static void display_menu(void)
+{
+    int algorithm, comm;
+    printf("Please specify the scheduling algorithm you want to employ.\n");
+    printf("1) Next job waiting.\n2) Longest job first.\n3) Shortest job first.\n");
+    scanf("%d", algorithm);
+    do
+    {
+        switch(algorithm)
+        {
+            case 1:
+                printf("Next job waiting selected.\n");
+                break;
+            case 2:
+                printf("Longest job first selected.\n");
+                break;
+            case 3:
+                printf("Shortest job first selected.\n");
+                break;
+        }
+    } while();
+
+    printf("Please specify whether you want communication to be blocking or non-blocking.\n");
+    do
+    {
+        switch(selection)
+        {
+            case 1:
+                printf("Next job waiting selected.\n");
+                break;
+            case 2:
+                printf("Longest job first selected.\n");
+                break;
+            case 3:
+                printf("Shortest job first selected.\n");
+                break;
+        }
+    } while();
 }
 
 // MASTER SECTION
@@ -69,7 +121,7 @@ int main(int argc, char *argv[])
 // from all slaves (sending a pull request ideally).
 static void init_master(void)
 {
-    int taskNum, rank, jobCompletedNum = 0, jobID = -1;
+    int nodeNum, rank, jobCompletedNum = 0, jobID = -1;
     worker_input_t job;
     worker_output_t result;
     MPI_STATUS status;
@@ -78,14 +130,14 @@ static void init_master(void)
     // Allocates the number of tasks in the provided communicator group. As the communicator is defined as
     // "world", it represents all available MPI nodes. MPI_COMM_WORLD denotes all nodes in the MPI application
 
-    if (taskNum > 1)
+    if (nodeNum > 1)
         printf("MASTER: There are [%d] slave nodes.\n", taskNum);
     else
         printf("MASTER: There is [%d] slave node.\n", taskNum);
 
     // Seed slaves each one job. These jobs should be popped from the job queue that has been established
     // by the user.
-    for (rank = 1; rank < taskNum; rank++)
+    for (rank = 1; rank < nodeNum; rank++)
     {
         job = get_next_job();
         MPI_Send(&job, 1, MPI_INT, rank, JOBFLAG, MPI_COMM_WORLD);
@@ -167,6 +219,12 @@ static void queue_job(int position)
 }
 
 static void parse_job_script(void)
+{
+
+}
+
+// Check if job queue on master is empty.
+static boolean is_queue_empty(void)
 {
 
 }
