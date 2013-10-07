@@ -11,6 +11,7 @@
 // function prototypes
 #include    <mpi.h>
 #include    <stdio.h>
+#include    <dirent.h>
 #define     MASTER_NODE 0
 #define     JOBFLAG 1
 #define     KILLFLAG 2
@@ -19,12 +20,14 @@
 #define     ALGORITHM_SHORTEST_FIRST 5
 #define     ALGORITHM_FCFS 6
 #define     ALGORITHM_ROUND_ROBIN 7
+#define     DEFAULT_FILE_NUM 20
 
 static void init_master(void);
 static void init_slave(int rank);
 static worker_output_t do_job(worker_input_t);
 static void process_work(worker_output_t);
 static worker_input_t get_next_job(void);
+static char **JobList;
 
 typedef struct
 {
@@ -35,6 +38,7 @@ typedef struct
 {
     /* data */
 } worker_output_t;
+
 
 
 int main(int argc, char *argv[])
@@ -244,5 +248,20 @@ static void parse_job_script(void)
 // Check if job queue on master is empty.
 static boolean is_queue_empty(void)
 {
+
+}
+
+static void parse_job_directory(void)
+{
+    DIR *dir;
+    struct dirent *d;
+    dir = opendir(".");
+    if (dir)
+    {
+        while ((d = readdir(dir)) != NULL)
+        {
+
+        }
+    }
 
 }
