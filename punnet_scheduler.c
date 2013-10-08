@@ -39,7 +39,15 @@ static void init_slave(int rank);
 static worker_output_t do_job(worker_input_t);
 static void process_work(worker_output_t);
 static worker_input_t get_next_job(void);
-static char **jobFiles;
+static Job *jobQueue;
+
+typedef struct
+{
+    int jobId;
+    int status;
+    char jobName[FILENAME_MAX_LENGTH];
+    double walltime;
+} Job;
 
 int main(int argc, char *argv[])
 {
@@ -154,7 +162,9 @@ static void gather_user_requests(void)
         // Here the user will communicate with the daemon scheduler.
         // The user will run some program to initiate the socket connection and
         // the daemon will be sent command line arguments to send back the requested information.
-        read(connection_fd, buffer, 255);
+        //read(connection_fd, buffer, 255);
+
+        write(connection_fd, buffer, strlen(buffer));
     }
 
     close(listen_fd);
@@ -376,12 +386,25 @@ static boolean parse_job_directory(void)
     }
     if (fileCount == 0)
         return false;
+    closedir(dir);
 
-    // Allocate memory for data structure containing all job script file names.
-    jobFiles = malloc(fileCount * sizeof(char*));
-    for (i = 0; i < fileCount; i++)
+    // Allocate memory for data structure containing all job structs.
+    jobQueue = malloc(fileCount * sizeof(Job));
+
+    dir = opendir(".");
+    while ((d = readdir(dir)) != NULL)
     {
-        jobFiles[i] = malloc((FILENAME_MAX_LENGTH + 1) * sizeof(char));
+        if (d->d_type == DT_REG)
+        {
+            extension = strchr(d->d_name, '.');
+            if (strcmp(extension, ".pjs") == 0)
+            {
+                jobQueue[i].jobId = i;
+                jobQueue[i].jobName = ;
+                i++;
+            }
+
+        }
     }
     return true;
 }
