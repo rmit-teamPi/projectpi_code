@@ -13,6 +13,14 @@
 #include    <stdio.h>
 #include    <dirent.h>
 #include    <pthread.h>
+#include    <sys/types.h>
+#include    <sys/stat.h>
+#include    <stdlib.h>
+#include    <fcntl.h>
+#include    <errno.h>
+#include    <unistd.h>
+#include    <syslog.h>
+#include    <string.h>
 
 
 #define     MASTER_NODE 0
@@ -49,9 +57,36 @@ void *schedulerThread(void)
 
 int main(int argc, char *argv[])
 {
+    pid_t pid, sid; // Process ID & session ID
     int rank, initFlag, algorithmFlag, commFlag;
     char hostname[MAX_CHAR_HOSTNAME];
     pthread_t schedulerThread;
+
+    // Fork of parent process
+    pid = fork();
+    if (pid < 0)
+        exit(EXIT_FAILURE);
+
+    if (pid > 0)
+        exit(EXIT_SUCCESS);
+
+    sid = setsid();
+    if (sid < 0)
+        exit(EXIT_FAILURE);
+
+    // Change working directory of daemon
+    // TODO: This must be changed to the working directory of OpenMPI
+    if ((chdir("/")) < 0)
+        exit(EXIT_FAILURE);
+
+    // Daemon cannot interact with STDIN, STDOUR, or STDERR
+    close(STDIN_FILENO);
+    close(STDOUT_FILENO);
+    close(STDERR_FILENO);
+
+    // --------------------------------
+    // DAEMON IS INITIALIZED HERE
+    // --------------------------------
 
     initFlag = MPI_Init(&argc, &argv);
     if (initFlag != MPI_SUCCESS)
@@ -74,14 +109,7 @@ int main(int argc, char *argv[])
         // Gather user input as to how the scheduler will operate.
         algorithmFlag = display_algorithm_menu();
         commFlag = display_comm_menu();
-
-        // Create thread for farming our jobs from master.
-        pthread_create(schedulerThread, NULL, init_master_thread, "processing jobs...");
-
-        gather_user_requests();
-
-        // Join scheduling thread with main thread.
-        pthread_join(schedulerThread, NULL);
+        init_master();
     }
     else
         init_slave(rank);
@@ -91,8 +119,11 @@ int main(int argc, char *argv[])
     return 0;
 }
 
+// This operates as a seperate thread to job farming in order to process user input
+// that are requests to guage the current scheduler statistics.
 static void gather_user_requests(void)
 {
+
     return;
 }
 
@@ -157,7 +188,7 @@ static int display_comm_menu(void)
 // the most appropriate slave to undertake the job.
 // After all processing has been complete, the master should recieve outstanding results
 // from all slaves (sending a pull request ideally).
-static void *init_master_thread(void)
+static void init_master(void)
 {
     int nodeNum, rank, jobCompletedNum = 0, jobID = -1, outstandingJobNum = 0;
     worker_input_t job;
