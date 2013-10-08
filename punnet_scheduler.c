@@ -9,7 +9,7 @@
 
 // These constants should ideally be defined in their own header file along with
 // function prototypes
-#include    <mpi.h>
+#include    "mpi.h"
 #include    <stdio.h>
 #include    <dirent.h>
 #include    <pthread.h>
@@ -40,21 +40,6 @@ static void process_work(worker_output_t);
 static worker_input_t get_next_job(void);
 static char *jobFiles[20];
 
-typedef struct
-{
-    /* data */
-} worker_input_t;
-
-typedef struct
-{
-    /* data */
-} worker_output_t;
-
-void *schedulerThread(void)
-{
-
-}
-
 int main(int argc, char *argv[])
 {
     pid_t pid, sid; // Process ID & session ID
@@ -81,7 +66,7 @@ int main(int argc, char *argv[])
 
     // Daemon cannot interact with STDIN, STDOUR, or STDERR
     close(STDIN_FILENO);
-    close(STDOUT_FILENO);
+    //close(STDOUT_FILENO);
     close(STDERR_FILENO);
 
     // --------------------------------
@@ -166,14 +151,27 @@ static void gather_user_requests(void)
     while((connection_fd = accept(listen_fd, (struct sockaddr *) &address, &address_length)) > -1)
     {
         // Here the user will communicate with the daemon scheduler.
+        // The user will run some program to initiate the socket connection and
+        // the daemon will be sent command line arguments to send back the requested information.
+        read(connection_fd, buffer, 255);
     }
 
     close(listen_fd);
     return;
 }
 
+// This function will parse data read from the input socket
+// in order to interpret user requests for scheduler diagnostics.
+static void parse_user_input(void)
+{
+
+
+}
+
 // This menu should provide the master node an option for the end user to specificy what
 // scheduling technique to use and whether to use blocking/non-blocking IO.
+
+// TODO: Fix terminating while condition
 static int display_algorithm_menu(void)
 {
     int algorithmOption;
@@ -202,6 +200,8 @@ static int display_algorithm_menu(void)
     } while();
 }
 
+
+// TODO: Fix terminating while condition
 static int display_comm_menu(void)
 {
     int commOption;
@@ -292,12 +292,11 @@ static void init_slave(int rank)
     worker_output_t result; // Result buffer after processing job
     MPI_STATUS status;
 
-    printf("SLAVE: I am slave node [%d].\n", rank);
-
     // Recieve all messages from master node. This is blocking IO
     while(true)
     {
         // Recv(buffer, count, datatype, destination, tag, WORLD, status)
+        // TODO: Alter arguments to match job script identifies
         MPI_Recv(&job, 1, MPI_INT, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &status)
 
         // Check to see if the slave has been sent a kill command
@@ -306,6 +305,7 @@ static void init_slave(int rank)
 
         result = do_job(job);
         // Send(buffer, count, datatype, destination, tab, WORLD)
+         // TODO: Alter arguments to match job script identifies
         MPI_Send(&result, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
     }
 }
@@ -351,6 +351,8 @@ static boolean is_queue_empty(void)
 // format then adds it to the job queue on the master node.
 // Basically this function initializes the job default, unsorted job queue.
 // Functionally, the queue must be able to be dynamically allocated filenames.
+
+// TODO: Do fix, make file reading dynamic and be able to assign job to hash table/array
 static void parse_job_directory(void)
 {
     int i = 0, fileCount = 0;
