@@ -32,6 +32,7 @@
 #define     ALGORITHM_SHORTEST_FIRST 5
 #define     ALGORITHM_FCFS 6
 #define     ALGORITHM_ROUND_ROBIN 7
+#define     FILENAME_MAX_LENGTH 20
 
 static void init_master(void);
 static void init_slave(int rank);
@@ -352,10 +353,9 @@ static boolean is_queue_empty(void)
 // Basically this function initializes the job default, unsorted job queue.
 // Functionally, the queue must be able to be dynamically allocated filenames.
 
-// TODO: Do fix, make file reading dynamic and be able to assign job to hash table/array
-static void parse_job_directory(void)
+static boolean parse_job_directory(void)
 {
-    int i = 0, fileCount = 0;
+    int i, fileCount = 0;
     DIR *dir;
     struct dirent *d;
     char *extension;
@@ -370,9 +370,18 @@ static void parse_job_directory(void)
             // Tokenize file extension, delimited by last period.
             extension = strchr(d->d_name, '.');
             // If file extension matches that of a job script, increment file count.
-            if (strcmp(extension, "pjs") == 0)
+            if (strcmp(extension, ".pjs") == 0)
                 fileCount++;
         }
     }
+    if (fileCount == 0)
+        return false;
 
+    // Allocate memory for data structure containing all job script file names.
+    jobFiles = malloc(fileCount * sizeof(char*));
+    for (i = 0; i < fileCount; i++)
+    {
+        jobFiles[i] = malloc((FILENAME_MAX_LENGTH + 1) * sizeof(char));
+    }
+    return true;
 }
