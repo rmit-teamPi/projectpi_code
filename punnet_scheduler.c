@@ -38,7 +38,7 @@ static void init_slave(int rank);
 static worker_output_t do_job(worker_input_t);
 static void process_work(worker_output_t);
 static worker_input_t get_next_job(void);
-static char *jobFiles[20];
+static char **jobFiles;
 
 int main(int argc, char *argv[])
 {
@@ -358,16 +358,21 @@ static void parse_job_directory(void)
     int i = 0, fileCount = 0;
     DIR *dir;
     struct dirent *d;
+    char *extension;
+    // This should correspond to the current working directory of OpenMPI.
     dir = opendir(".");
-    if (dir)
+    // Iterate over entire working directory.
+    while ((d = readdir(dir)) != NULL)
     {
-        while ((d = readdir(dir)) != NULL)
+        // Check if file is regular.
+        if (d->d_type == DT_REG)
         {
-            if (d->)
-            strcpy(jobFiles[i], d->d_name);
-            i++;
+            // Tokenize file extension, delimited by last period.
+            extension = strchr(d->d_name, '.');
+            // If file extension matches that of a job script, increment file count.
+            if (strcmp(extension, "pjs") == 0)
+                fileCount++;
         }
-        closedir(dir);
     }
 
 }
