@@ -18,24 +18,32 @@ int main(int argc, char *argv[])
     socket_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (socket_fd < 0)
     {
-        //error
+        printf("Error creating socket.");
+        exit(1);
     }
 
     address.sun_family = AF_INET;
-    address.sin_port = 9999;
+    address.sin_addr.s_addr = inet_addr("127.0.0.1");
+    address.sin_port = htons(9999);
 
     // Conenct to daemon socket.
     if (connect(socket_fd, (struct sockaddr *) &address, sizeof (address)) < 0)
     {
-        // connection failed
+        printf("Connection to daemon failed.");
+        exit(1);
     }
 
-    write(socket_fd, buffer, nbytes);
-
-    // Read response from daemon software.
-    while()
+    // No additional command line arguments.
+    // TODOD: Change packet size.
+    if (argc == 0)
     {
-
+        nbytes = snprintf(buffer, 255, "SHOWALLSTATUS");
+        write(socket_fd, buffer, nbytes);
+        nbytes = read(socket_fd, buffer, 255);
+        buffer[nbytes] = 0;
+        printf(buffer);
     }
 
+    close(socket_fd);
+    return 0;
 }

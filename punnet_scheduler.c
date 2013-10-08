@@ -132,7 +132,7 @@ static void gather_user_requests(void)
 
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = INADDR_ANY;
-    address.sin_port = 9999;
+    address.sin_port = htons(9999);
 
     // Call socket bind
     if (bind(listen_fd, (struct sockaddr *) &address, sizeof(address)) < 0)
