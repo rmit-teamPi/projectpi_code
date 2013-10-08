@@ -14,6 +14,7 @@
 #include    <dirent.h>
 #include    <pthread.h>
 #include    <sys/types.h>
+#include    <sys/socket.h>
 #include    <sys/stat.h>
 #include    <stdlib.h>
 #include    <fcntl.h>
@@ -31,7 +32,6 @@
 #define     ALGORITHM_SHORTEST_FIRST 5
 #define     ALGORITHM_FCFS 6
 #define     ALGORITHM_ROUND_ROBIN 7
-#define     DEFAULT_FILE_NUM 20
 
 static void init_master(void);
 static void init_slave(int rank);
@@ -109,7 +109,11 @@ int main(int argc, char *argv[])
         // Gather user input as to how the scheduler will operate.
         algorithmFlag = display_algorithm_menu();
         commFlag = display_comm_menu();
-        init_master();
+         // Create seperate thread for master scheduler
+        pthread_create(&schedulerThread, NULL, init_master);
+        gather_user_requests();
+        // Merge main thread and master thread
+        pthread_join(schedulerThread, NULL);
     }
     else
         init_slave(rank);
@@ -119,11 +123,52 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-// This operates as a seperate thread to job farming in order to process user input
-// that are requests to guage the current scheduler statistics.
+// This function allows the user to communicate via sockets to request
+// scheduler statistics.
 static void gather_user_requests(void)
 {
+    struct sockaddr_in address;
+    int listen_fd, connection_fd;
+    socklen_t address_length;
+    char buffer[1024];
 
+    // Create TCP/IP socket.
+    // AF_NET: IPv4 address family
+    // SOCK_STREAM: TCP type
+    // 0: IP protocol
+    // Function returns a file descriptor
+    listen_fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (listen_fd < 0)
+    {
+         perror("Failed socket creation");
+         exit(1);
+    }
+
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = INADDR_ANY;
+    address.sin_port = 9999;
+
+    // Call socket bind
+    if (bind(listen_fd, (struct sockaddr *) &address, sizeof(address)) < 0)
+    {
+        perror("Bind Failed");
+        exit(1);
+    }
+    // Listen.
+    // The second argument is a maximum length to which the queue of pending connections to the socket
+    // may grow.
+    if (listen(listen_fd, 1) != 0)
+    {
+        perror("Listen Failed");
+        exit(1);
+    }
+    // Accept incoming connections
+    while((connection_fd = accept(listen_fd, (struct sockaddr *) &address, &address_length)) > -1)
+    {
+        // Here the user will communicate with the daemon scheduler.
+    }
+
+    close(listen_fd);
     return;
 }
 
@@ -188,7 +233,7 @@ static int display_comm_menu(void)
 // the most appropriate slave to undertake the job.
 // After all processing has been complete, the master should recieve outstanding results
 // from all slaves (sending a pull request ideally).
-static void init_master(void)
+static void *init_master(void)
 {
     int nodeNum, rank, jobCompletedNum = 0, jobID = -1, outstandingJobNum = 0;
     worker_input_t job;
