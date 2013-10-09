@@ -1,0 +1,7 @@
+##START##
+JOBNAME: "HelloWorldJob"
+WALLTIME: "00:50:00"
+FLAGS: "CRITICAL"
+#END##
+
+./helloworld
