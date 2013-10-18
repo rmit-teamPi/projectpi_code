@@ -89,8 +89,8 @@ int main(int argc, char *argv[])
         MPI_Abort(MPI_COMM_WORLD, initFlag);
     }
     // Initialize MPI environment.
-    // The function accepts argc and argv pointers in order to differentiate between
-    // command line arguments provided on "mpirun".
+    // The function accepts argc and argv pointers in order to differentiate 
+    // between command line arguments provided on "mpirun".
 
     MPI_COMM_RANK(MPI_COMM_RANK, &rank);
     // Allocates the rank of the calling node. Each node is defined a unique ID.
@@ -149,8 +149,8 @@ static void gather_user_requests(void)
         exit(1);
     }
     // Listen.
-    // The second argument is a maximum length to which the queue of pending connections to the socket
-    // may grow.
+    // The second argument is a maximum length to which the queue of pending 
+    // connections to the socket may grow.
     if (listen(listen_fd, 1) != 0)
     {
         perror("Listen Failed");
@@ -160,8 +160,9 @@ static void gather_user_requests(void)
     while((connection_fd = accept(listen_fd, (struct sockaddr *) &address, &address_length)) > -1)
     {
         // Here the user will communicate with the daemon scheduler.
-        // The user will run some program to initiate the socket connection and
-        // the daemon will be sent command line arguments to send back the requested information.
+        // The user will run some program to initiate the socket connection 
+        // and the daemon will be sent command line arguments to send back 
+        // the requested information.
         //read(connection_fd, buffer, 255);
 
         write(connection_fd, buffer, strlen(buffer));
@@ -179,8 +180,9 @@ static void parse_user_input(void)
 
 }
 
-// This menu should provide the master node an option for the end user to specificy what
-// scheduling technique to use and whether to use blocking/non-blocking IO.
+// This menu should provide the master node an option for the end user to 
+// specificy what scheduling technique to use and whether to use 
+// blocking/non-blocking IO.
 
 // TODO: Fix terminating while condition
 static int display_algorithm_menu(void)
@@ -240,10 +242,10 @@ static int display_comm_menu(void)
 
 // MASTER SECTION
 // This function will be called after identifying the call device as a "manager".
-// The manager should iteratively request a scheduled job from the queue and determine
-// the most appropriate slave to undertake the job.
-// After all processing has been complete, the master should recieve outstanding results
-// from all slaves (sending a pull request ideally).
+// The manager should iteratively request a scheduled job from the queue and 
+// determine the most appropriate slave to undertake the job.
+// After all processing has been complete, the master should recieve outstanding 
+// results from all slaves (sending a pull request ideally).
 static void *init_master(void)
 {
     int nodeNum, rank, jobCompletedNum = 0, jobID = -1, outstandingJobNum = 0;
@@ -252,16 +254,17 @@ static void *init_master(void)
     MPI_STATUS status;
 
     MPI_COMM_SIZE(MPI_COMM_WORLD, &taskNum);
-    // Allocates the number of tasks in the provided communicator group. As the communicator is defined as
-    // "world", it represents all available MPI nodes. MPI_COMM_WORLD denotes all nodes in the MPI application
+    // Allocates the number of tasks in the provided communicator group. 
+    // As the communicator is defined as "world", it represents all available MPI 
+    // nodes. MPI_COMM_WORLD denotes all nodes in the MPI application
 
     if (nodeNum > 1)
         printf("MASTER: There are [%d] slave nodes.\n", nodeNum);
     else
         printf("MASTER: There is [%d] slave node.\n", nodeNum);
 
-    // Seed slaves each one job. These jobs should be popped from the job queue that has been established
-    // by the user.
+    // Seed slaves each one job. These jobs should be popped from the job queue 
+    // that has been established by the user.
     for (rank = 1; rank < nodeNum; rank++)
     {
         job = get_next_job();
@@ -295,8 +298,8 @@ static void *init_master(void)
 // SLAVE SECTION
 // This will be called after identifying the calling device as a "worker".
 // The worker node should operate in a polling fashion.
-// The worker waits for messages from the master and proceeds to do the work and
-// finally sends the result to the master.
+// The worker waits for messages from the master and proceeds to do the work 
+// and finally sends the result to the master.
 static void init_slave(int rank)
 {
     worker_input_t job; // Job buffer recieved by master
@@ -334,7 +337,8 @@ static void process_work(worker_output_t result)
 }
 
 // Function called by master in order to process next job in the queue.
-// This function simply removes the next job from the queue and farms it to a worker.
+// This function simply removes the next job from the queue and farms it to 
+// a worker.
 static worker_input_t get_next_job(void)
 {
 
@@ -358,8 +362,8 @@ static boolean is_queue_empty(void)
 
 }
 
-// This function reads the contents of the job directory, checks if a files is of the correct
-// format then adds it to the job queue on the master node.
+// This function reads the contents of the job directory, checks if a files 
+// is of the correct format then adds it to the job queue on the master node.
 // Basically this function initializes the job default, unsorted job queue.
 // Functionally, the queue must be able to be dynamically allocated filenames.
 
